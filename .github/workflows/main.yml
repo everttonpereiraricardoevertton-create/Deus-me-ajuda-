@@ -1,0 +1,32 @@
+:name: Windows RDP Tailscale
+on: workflow_dispatch
+jobs:
+build:
+runs-on: windows-latest
+steps:
+- name: Install and Connect Tailscale
+run: |
+choco install tailscale -y
+& "C:\Program Files\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTH_KEY }} --unattended
+- name: Configure RDP & Create User
+run: |
+# 1. Aktivizon RDP & Fik NLA
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name "fDenyTSConnections" -Value 0
+Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp' -Name "UserAuthentication" -Value 0
+Enable-NetFirewallRule -DisplayGroup "Remote Desktop"
+# 2. Krijon perdoruesin ne menyre te sigurt me PowerShell
+$Password = ConvertTo-SecureString "Vali37839393!" -AsPlainText -Force
+New-LocalUser -Name "vali111111" -Password $Password -FullName "vali111111" -PasswordNeverExpires:$true -ErrorAction SilentlyContinue
+# 3. I jep te drejtat e Administratorit
+Add-LocalGroupMember -Group "Administrators" -Member "vali111111" -ErrorAction SilentlyContinue
+Add-LocalGroupMember -Group "Remote Desktop Users" -Member "vali111111" -ErrorAction SilentlyContinue
+- name: Show Tailscale IP
+run: |
+Start-Sleep -Seconds 5
+$tsIP = & "C:\Program Files\Tailscale\tailscale.exe" ip -4
+Write-Host "========================================="
+Write-Host "IP E TAILSCALE PER WINDOWS APP: $tsIP"
+Write-Host "USERNAME: localhost\vali111111"
+Write-Host "PASSWORD: Vali37839393!"
+Write-Host "========================================="
+while ($true) { Start-Sleep -Seconds 60 }
